@@ -10,6 +10,7 @@ import com.liskovsoft.youtubeapi.common.helpers.AppClient;
 import com.liskovsoft.youtubeapi.videoinfo.models.formats.AdaptiveVideoFormat;
 import com.liskovsoft.youtubeapi.videoinfo.models.formats.RegularVideoFormat;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class VideoInfo {
@@ -394,17 +395,41 @@ public class VideoInfo {
 
     private List<CaptionTrack> mergeCaptionTracks() {
         if (mMergedCaptionTracks == null) {
-            mMergedCaptionTracks = mCaptionTracks;
+            mMergedCaptionTracks = mCaptionTracks != null ? new ArrayList<>(mCaptionTracks) : null;
 
-            if (mTranslationLanguages != null && mCaptionTracks != null) {
+            if (mCaptionTracks != null) {
                 CaptionTrack originTrack = findOriginTrack(mCaptionTracks);
-                for (TranslationLanguage language : mTranslationLanguages) {
-                    mMergedCaptionTracks.add(new TranslatedCaptionTrack(originTrack, language));
+
+                if (originTrack != null && originTrack.isTranslatable()) {
+                    if (mTranslationLanguages != null) {
+                        for (TranslationLanguage language : mTranslationLanguages) {
+                            mMergedCaptionTracks.add(new TranslatedCaptionTrack(originTrack, language));
+                        }
+                    }
+
+                    if (!containsTranslationLanguage("fa")) {
+                        mMergedCaptionTracks.add(new TranslatedCaptionTrack(originTrack,
+                                new TranslationLanguage("fa", "فارسی")));
+                    }
                 }
             }
         }
 
         return mMergedCaptionTracks;
+    }
+
+    private boolean containsTranslationLanguage(String languageCode) {
+        if (mTranslationLanguages == null) {
+            return false;
+        }
+
+        for (TranslationLanguage language : mTranslationLanguages) {
+            if (languageCode.equals(language.getLanguageCode())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
