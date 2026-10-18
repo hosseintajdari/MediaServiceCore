@@ -7,6 +7,8 @@ import androidx.annotation.Nullable;
 
 import com.liskovsoft.sharedutils.helpers.Helpers;
 import com.liskovsoft.sharedutils.prefs.GlobalPreferences;
+import com.liskovsoft.youtubeapi.app.models.AppInfo;
+import com.liskovsoft.youtubeapi.app.models.TvConfig;
 import com.liskovsoft.youtubeapi.app.playerdata.PlayerDataExtractor;
 import com.liskovsoft.youtubeapi.auth.V1.AuthApi;
 import com.liskovsoft.youtubeapi.common.helpers.AppClient;
@@ -19,11 +21,11 @@ import kotlin.Pair;
 
 public class AppService {
     private static AppService sInstance;
-    private final AppServiceInt mAppServiceInt;
+    private final AppServiceCore mAppServiceCore;
     private String mClientPlaybackNonce;
 
     private AppService() {
-        mAppServiceInt = new AppServiceIntCached();
+        mAppServiceCore = new AppServiceCoreCached();
     }
 
     public static AppService instance() {
@@ -49,7 +51,7 @@ public class AppService {
      * Extracts signature used in music videos
      */
     public List<String> extractSig(List<String> sParams) {
-        PlayerDataExtractor playerDataExtractor = mAppServiceInt.getPlayerDataExtractor();
+        PlayerDataExtractor playerDataExtractor = mAppServiceCore.getPlayerDataExtractor();
 
         if (playerDataExtractor == null) {
             return null;
@@ -63,7 +65,7 @@ public class AppService {
             return null;
         }
 
-        PlayerDataExtractor playerDataExtractor = mAppServiceInt.getPlayerDataExtractor();
+        PlayerDataExtractor playerDataExtractor = mAppServiceCore.getPlayerDataExtractor();
 
         if (playerDataExtractor == null) {
             return null;
@@ -89,7 +91,7 @@ public class AppService {
             return null;
         }
 
-        PlayerDataExtractor playerDataExtractor = mAppServiceInt.getPlayerDataExtractor(client);
+        PlayerDataExtractor playerDataExtractor = mAppServiceCore.getPlayerDataExtractor(client);
 
         if (playerDataExtractor == null) {
             return null;
@@ -142,7 +144,7 @@ public class AppService {
             return mClientPlaybackNonce;
         }
 
-        PlayerDataExtractor playerDataExtractor = mAppServiceInt.getPlayerDataExtractor(client);
+        PlayerDataExtractor playerDataExtractor = mAppServiceCore.getPlayerDataExtractor(client);
 
         if (playerDataExtractor == null) {
             return null;
@@ -161,14 +163,14 @@ public class AppService {
      * Constant used in {@link AuthApi}
      */
     public String getClientId() {
-        return mAppServiceInt.getClientId();
+        return mAppServiceCore.getClientId();
     }
 
     /**
      * Constant used in {@link AuthApi}
      */
     public String getClientSecret() {
-        return mAppServiceInt.getClientSecret();
+        return mAppServiceCore.getClientSecret();
     }
 
     /**
@@ -182,7 +184,7 @@ public class AppService {
      * Used in get_video_info
      */
     public String getSignatureTimestamp(@Nullable AppClient client) {
-        PlayerDataExtractor playerDataExtractor = mAppServiceInt.getPlayerDataExtractor(client);
+        PlayerDataExtractor playerDataExtractor = mAppServiceCore.getPlayerDataExtractor(client);
 
         if (playerDataExtractor == null) {
             return null;
@@ -195,15 +197,15 @@ public class AppService {
      * Used with get_video_info, anonymous search and suggestions
      */
     public String getVisitorData() {
-        return mAppServiceInt.getVisitorData();
+        return mAppServiceCore.getVisitorData();
     }
 
     public void invalidateCache() {
-        mAppServiceInt.invalidateCache();
+        mAppServiceCore.invalidateCache();
     }
 
     public void refreshCacheIfNeeded() {
-        mAppServiceInt.refreshCacheIfNeeded();
+        mAppServiceCore.refreshCacheIfNeeded();
     }
 
     /**
@@ -211,11 +213,11 @@ public class AppService {
      * After reset user will get the latest js file versions.
      */
     public void invalidateVisitorData() {
-        mAppServiceInt.invalidateVisitorData();
+        mAppServiceCore.invalidateVisitorData();
     }
 
     public boolean isPlayerCacheActual() {
-        return mAppServiceInt.isPlayerCacheActual();
+        return mAppServiceCore.isPlayerCacheActual();
     }
 
     @NonNull
@@ -227,5 +229,13 @@ public class AppService {
         }
 
         return context;
+    }
+
+    public TvConfig getTvConfig() {
+        return mAppServiceCore.getTvConfig();
+    }
+
+    public AppInfo getAppInfo(String userAgent) {
+        return mAppServiceCore.getAppInfo(userAgent);
     }
 }

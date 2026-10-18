@@ -4,6 +4,7 @@ import com.liskovsoft.mediaserviceinterfaces.data.MediaItemFormatInfo
 import com.liskovsoft.sharedutils.prefs.GlobalPreferences
 import com.liskovsoft.youtubeapi.app.AppService
 import com.liskovsoft.youtubeapi.app.PoTokenGate
+import com.liskovsoft.youtubeapi.app.ReloadPlaybackGate
 import com.liskovsoft.youtubeapi.common.helpers.AppClient
 import com.liskovsoft.youtubeapi.innertube.InnertubeService
 import com.liskovsoft.youtubeapi.service.YouTubeSignInService
@@ -12,7 +13,7 @@ import com.liskovsoft.youtubeapi.videoinfo.V2.VideoInfoService
 
 internal object FormatInfoWrapper {
     private var mCachedFormatInfo: MediaItemFormatInfo? = null
-    private var mTryInnertubeFirst: Boolean = true
+    private var mTryInnertubeFirst: Boolean = false
     private val mInnertubeResult = object { var isUnplayable: Boolean = false; var client: AppClient? = null }
     private val mInnertubeProvider: (String, String?) -> MediaItemFormatInfo? =
         { videoId, clickTrackingParams ->
@@ -24,10 +25,17 @@ internal object FormatInfoWrapper {
         }
     private val mLegacyProvider: (String, String?) -> MediaItemFormatInfo? =
         { videoId, clickTrackingParams -> getFormatInfoLegacy(videoId, clickTrackingParams) }
+    private val lock = Any()
 
     @JvmStatic
     fun getFormatInfo(videoId: String, clickTrackingParams: String?): MediaItemFormatInfo? {
-        return selectPlaybackFormatInfo(videoId, clickTrackingParams)
+        try {
+            synchronized(lock) {
+                return selectPlaybackFormatInfo(videoId, clickTrackingParams)
+            }
+        } finally {
+            ReloadPlaybackGate.reset(videoId)
+        }
     }
 
     @JvmStatic
@@ -131,10 +139,7 @@ internal object FormatInfoWrapper {
     }
 
     private fun getCachedFormatInfo(videoId: String?): MediaItemFormatInfo? {
-        return if (mCachedFormatInfo?.getVideoId() != null &&
-            mCachedFormatInfo?.getVideoId() == videoId &&
-            mCachedFormatInfo?.isCacheActual() ?: false
-        ) mCachedFormatInfo else null
+        return mCachedFormatInfo?.takeIf { videoId != null && it.getVideoId() == videoId && it.isCacheActual() }
     }
 
     private fun setCachedFormatInfo(formatInfo: MediaItemFormatInfo?, clickTrackingParams: String?) {
