@@ -9,12 +9,21 @@ public class TranslationLanguage {
 
     @JsonPath("$.languageName")
     private TextItem mLanguageName;
+    private String mLanguageNameOverride;
+
+    public TranslationLanguage() {
+    }
+
+    public TranslationLanguage(String languageCode, String languageName) {
+        mLanguageCode = languageCode;
+        mLanguageNameOverride = languageName;
+    }
 
     public String getLanguageCode() {
         return mLanguageCode;
     }
 
     public String getLanguageName() {
-        return mLanguageName != null ? mLanguageName.toString() : null;
+        return mLanguageNameOverride != null ? mLanguageNameOverride : mLanguageName != null ? mLanguageName.toString() : null;
     }
 }
