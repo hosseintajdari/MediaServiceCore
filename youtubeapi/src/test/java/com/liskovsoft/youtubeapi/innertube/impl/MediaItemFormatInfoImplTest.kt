@@ -3,7 +3,11 @@ package com.liskovsoft.youtubeapi.innertube.impl
 import com.google.gson.Gson
 import com.liskovsoft.mediaserviceinterfaces.data.MediaFormat
 import com.liskovsoft.sharedutils.TestHelpers
+import com.liskovsoft.youtubeapi.common.models.gen.TextItem
+import com.liskovsoft.youtubeapi.innertube.models.CaptionTrack
 import com.liskovsoft.youtubeapi.innertube.models.PlayerResult
+import com.liskovsoft.youtubeapi.innertube.models.TranslationLanguage
+import com.liskovsoft.youtubeapi.innertube.utils.getMergeCaptionTracks
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -76,6 +80,61 @@ class MediaItemFormatInfoImplTest {
         assertTrue(formatInfo.containsDashFormats())
         assertEquals(MediaFormat.FORMAT_TYPE_DASH, formatInfo.getAdaptiveFormats()?.first()?.getFormatType())
     }
+
+    @Test
+    fun translatableCaptionsOfferPersianWhenTranslationLanguagesAreMissing() {
+        val result = captionResponse(true, "en", null).getMergeCaptionTracks().orEmpty()
+
+        assertEquals(listOf("en", "fa"), result.map(CaptionTrack::languageCode))
+        assertEquals("https://example.com/captions?lang=en&tlang=fa", result.last().baseUrl)
+        assertEquals("asr", result.last().kind)
+    }
+
+    @Test
+    fun translatableCaptionsPreserveOtherTranslationsAndAddPersian() {
+        val result = captionResponse(true, "en", listOf(translation("fr"))).getMergeCaptionTracks().orEmpty()
+
+        assertEquals(listOf("en", "fr", "fa"), result.map(CaptionTrack::languageCode))
+    }
+
+    @Test
+    fun persianFallbackIsNotDuplicatedWhenAlreadyAvailable() {
+        val native = captionResponse(true, "fa-IR", null).getMergeCaptionTracks().orEmpty()
+        val advertised = captionResponse(true, "en", listOf(translation("fa"))).getMergeCaptionTracks().orEmpty()
+
+        assertEquals(listOf("fa-IR"), native.map(CaptionTrack::languageCode))
+        assertEquals(listOf("en", "fa"), advertised.map(CaptionTrack::languageCode))
+    }
+
+    @Test
+    fun nonTranslatableCaptionsDoNotInventPersian() {
+        val result = captionResponse(false, "en", null).getMergeCaptionTracks().orEmpty()
+
+        assertEquals(listOf("en"), result.map(CaptionTrack::languageCode))
+    }
+
+    private fun captionResponse(
+        translatable: Boolean,
+        language: String,
+        translations: List<TranslationLanguage>?
+    ): PlayerResult {
+        val track = CaptionTrack("https://example.com/captions?lang=$language", translatable, language, null, null, null)
+        return PlayerResult(
+            playabilityStatus = null,
+            streamingData = null,
+            playerConfig = null,
+            captions = PlayerResult.Captions(
+                PlayerResult.Captions.PlayerCaptionsTracklistRenderer(listOf(track), translations)
+            ),
+            videoDetails = null,
+            storyboards = null,
+            microformat = null,
+            paidContentOverlay = null,
+            playbackTracking = null
+        )
+    }
+
+    private fun translation(code: String) = TranslationLanguage(code, TextItem(null, code, null, null))
 
     private fun parsePlayerResponse(path: String) =
         Gson().fromJson(TestHelpers.readResource(path), PlayerResult::class.java)

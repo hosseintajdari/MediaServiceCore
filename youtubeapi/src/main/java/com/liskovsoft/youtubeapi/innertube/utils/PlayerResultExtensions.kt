@@ -9,6 +9,7 @@ import com.liskovsoft.youtubeapi.common.models.gen.getText
 import com.liskovsoft.youtubeapi.innertube.models.CaptionTrack
 import com.liskovsoft.youtubeapi.innertube.models.PlayerResult
 import com.liskovsoft.youtubeapi.innertube.models.StreamingFormat
+import com.liskovsoft.youtubeapi.innertube.models.TranslationLanguage
 import com.liskovsoft.youtubeapi.videoinfo.models.CaptionTrack.CaptionFormat
 
 internal fun PlayerResult.getVideoPlaybackUstreamerConfig() = playerConfig?.mediaCommonConfig?.mediaUstreamerRequestConfig?.videoPlaybackUstreamerConfig
@@ -29,19 +30,27 @@ internal fun PlayerResult.getWatchTimeUrl() = playbackTracking?.videostatsWatcht
 private fun PlayerResult.getCaptionTracks() = captions?.playerCaptionsTracklistRenderer?.captionTracks
 private fun PlayerResult.getTranslationLanguages() = captions?.playerCaptionsTracklistRenderer?.translationLanguages
 internal fun PlayerResult.getMergeCaptionTracks(): List<CaptionTrack>? {
-    val translationLanguages = getTranslationLanguages()
     val captionTracks = getCaptionTracks()
+    if (captionTracks.isNullOrEmpty()) return captionTracks
 
-    if (translationLanguages.isNullOrEmpty() || captionTracks.isNullOrEmpty())
-        return captionTracks
+    val originTrack = findOriginTrack(captionTracks)
+    val originUrl = originTrack.baseUrl?.takeIf { it.isNotBlank() } ?: return captionTracks
+    val advertisedLanguages = getTranslationLanguages().orEmpty()
+    val translationLanguages = if (originTrack.isTranslatable == true &&
+        captionTracks.none { it.languageCode.isPersian() } &&
+        advertisedLanguages.none { it.languageCode.isPersian() }
+    ) {
+        advertisedLanguages + TranslationLanguage("fa", TextItem(null, "فارسی", null, null))
+    } else {
+        advertisedLanguages
+    }
 
     val resultTracks = captionTracks.toMutableList()
-
-    val originTrack = findOriginTrack(resultTracks)
     for (language in translationLanguages) {
-        // Don't try to translate the same lang or you'll get a mess
-        val baseUrl = if (originTrack.languageCode == language.languageCode) originTrack.baseUrl
-            else "${originTrack.baseUrl}&tlang=${language.languageCode}"
+        val languageCode = language.languageCode ?: continue
+        // Translating into the original track language can corrupt captions.
+        val baseUrl = if (originTrack.languageCode == languageCode) originUrl
+            else "${originUrl}&tlang=$languageCode"
         resultTracks.add(CaptionTrack(
             baseUrl,
             originTrack.isTranslatable,
@@ -54,6 +63,9 @@ internal fun PlayerResult.getMergeCaptionTracks(): List<CaptionTrack>? {
 
     return resultTracks
 }
+
+private fun String?.isPersian() = this?.substringBefore('-').equals("fa", ignoreCase = true)
+
 /**
  * We need auto sub because the lang param doesn't contain country name (e.g. en instead of en-US)
  *
