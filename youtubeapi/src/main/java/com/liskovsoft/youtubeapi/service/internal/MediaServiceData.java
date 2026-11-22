@@ -51,7 +51,7 @@ public class MediaServiceData {
     private String mScreenId;
     private String mDeviceId;
     private String mOldAppVersion;
-    private int mVideoInfoType;
+    private int mClientType;
     private String mVisitorCookie;
     private int mEnabledFormats;
     private int mHiddenContent;
@@ -66,6 +66,7 @@ public class MediaServiceData {
     private ClientDataCached mClientData;
     private boolean mIsMoreSubtitlesUnlocked;
     private boolean mIsLegacyUIEnabled;
+    private boolean mIsSabrLiveEnabled;
 
     private static class MediaServiceCache extends SharedPreferencesBase {
         private static final String PREF_NAME = MediaServiceCache.class.getSimpleName();
@@ -88,7 +89,7 @@ public class MediaServiceData {
         if (Helpers.isJUnitTest()) {
             Log.d(TAG, "JUnit test is running. Skipping data restore...");
             mEnabledFormats = FORMATS_ALL; // Debug
-            mVideoInfoType = -1; // Required for testing
+            mClientType = -1; // Required for testing
             return;
         }
 
@@ -137,12 +138,12 @@ public class MediaServiceData {
         persistData();
     }
     
-    public int getVideoInfoType() {
-        return mVideoInfoType;
+    public int getClientType() {
+        return mClientType;
     }
 
-    public void setVideoInfoType(int videoInfoType) {
-        mVideoInfoType = videoInfoType;
+    public void setClientType(int clientType) {
+        mClientType = clientType;
         persistData();
     }
 
@@ -282,6 +283,15 @@ public class MediaServiceData {
         persistData();
     }
 
+    public boolean isSabrLiveEnabled() {
+        return mIsSabrLiveEnabled;
+    }
+
+    public void setSabrLiveEnabled(boolean enable) {
+        mIsSabrLiveEnabled = enable;
+        persistData();
+    }
+
     private void restoreData() {
         String data = mGlobalPrefs.getMediaServiceData();
 
@@ -294,7 +304,7 @@ public class MediaServiceData {
         mDeviceId = Helpers.parseStr(split, 2);
         //String lastPlayerUrl = AppConstants.playerUrls.get(0); // fallback url for nfunc extractor
         mOldAppVersion = Helpers.parseStr(split, 3);
-        mVideoInfoType = Helpers.parseInt(split, 4, -1);
+        mClientType = Helpers.parseInt(split, 4, -1);
         //mSkipAuth = Helpers.parseBoolean(split, 5);
         // entries here moved to the cache
         mEnabledFormats = Helpers.parseInt(split, 11, FORMATS_ADAPTIVE);
@@ -311,6 +321,7 @@ public class MediaServiceData {
         //mIsLegacyUIEnabled = Helpers.parseBoolean(split, 23);
         mFailedAppInfo = Helpers.parseItem(split, 24, AppInfoCached::fromString);
         mIsLegacyUIEnabled = Helpers.parseBoolean(split, 25);
+        mIsSabrLiveEnabled = Helpers.parseBoolean(split, 26);
 
         boolean isAppUpdated = mOldAppVersion != null && !Helpers.equals(mOldAppVersion, appVersion);
 
@@ -337,10 +348,11 @@ public class MediaServiceData {
 
         mGlobalPrefs.setMediaServiceData(
                 Helpers.mergeData(null, mScreenId, mDeviceId, mOldAppVersion,
-                        mVideoInfoType, null, null, null, null, null,
+                        mClientType, null, null, null, null, null,
                         null, mEnabledFormats, null, null, mPoToken, mAppInfo,
                         null, mClientData, mHiddenContent, mIsMoreSubtitlesUnlocked,
-                        null, mVisitorCookie, null, null, mFailedAppInfo, mIsLegacyUIEnabled));
+                        null, mVisitorCookie, null, null, mFailedAppInfo, mIsLegacyUIEnabled,
+                        mIsSabrLiveEnabled));
     }
 
     private void persistCachedDataInt() {
@@ -367,7 +379,7 @@ public class MediaServiceData {
     }
 
     private void resetSensitiveData() {
-        mVideoInfoType = -1;
+        mClientType = -1;
         mFailedAppInfo = null;
     }
 }

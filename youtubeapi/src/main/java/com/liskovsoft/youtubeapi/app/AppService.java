@@ -4,6 +4,7 @@ import android.content.Context;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import com.liskovsoft.sharedutils.helpers.Helpers;
 import com.liskovsoft.sharedutils.prefs.GlobalPreferences;
@@ -136,7 +137,7 @@ public class AppService {
     }
 
     /**
-     * NOTE: Unique per video info instance<br/>
+     * NOTE: The value should be unique per each /player fetch. Mainly used in tracking (history).<br/>
      * A nonce is a unique value chosen by an entity in a protocol, and it is used to protect that entity against attacks which fall under the very large umbrella of "replay".
      */
     public synchronized String getClientPlaybackNonce(@Nullable AppClient client) {
@@ -204,8 +205,8 @@ public class AppService {
         mAppServiceCore.invalidateCache();
     }
 
-    public void refreshCacheIfNeeded() {
-        mAppServiceCore.refreshCacheIfNeeded();
+    public void warmUpCacheIfNeeded(@Nullable AppClient client) {
+        mAppServiceCore.warmUpCacheIfNeeded(client);
     }
 
     /**
@@ -237,5 +238,15 @@ public class AppService {
 
     public AppInfo getAppInfo(String userAgent) {
         return mAppServiceCore.getAppInfo(userAgent);
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
+    public String getPlayerUrl() {
+        return mAppServiceCore.getPlayerUrl();
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.NONE)
+    public PlayerDataExtractor getPlayerDataExtractor(String playerUrl) {
+        return mAppServiceCore.getPlayerDataExtractor(playerUrl);
     }
 }

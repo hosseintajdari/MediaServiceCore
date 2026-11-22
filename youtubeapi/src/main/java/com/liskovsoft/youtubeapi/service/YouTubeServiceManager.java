@@ -1,7 +1,6 @@
 package com.liskovsoft.youtubeapi.service;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
 import com.liskovsoft.mediaserviceinterfaces.ChannelGroupService;
 import com.liskovsoft.mediaserviceinterfaces.CommentsService;
@@ -20,7 +19,6 @@ import com.liskovsoft.youtubeapi.channelgroups.ChannelGroupServiceImpl;
 import com.liskovsoft.googlecommon.common.locale.LocaleManager;
 import com.liskovsoft.youtubeapi.service.internal.FormatInfoWrapper;
 import com.liskovsoft.youtubeapi.service.internal.MediaServiceData;
-import com.liskovsoft.youtubeapi.videoinfo.V2.VideoInfoService;
 
 import io.reactivex.disposables.Disposable;
 
@@ -88,30 +86,40 @@ public class YouTubeServiceManager implements ServiceManager {
         getAppService().invalidateCache();
         //AppService.instance().invalidateVisitorData();
         FormatInfoWrapper.invalidateCache();
-        FormatInfoWrapper.resetFormat();
+        FormatInfoWrapper.resetClient();
     }
 
     @Override
-    public void refreshCacheIfNeeded() {
-        refreshCacheIfNeededInt();
+    public void invalidateFormatCache() {
+        FormatInfoWrapper.invalidateCache();
+    }
+
+    @Override
+    public void warmUpCacheIfNeeded() {
+        if (RxHelper.isAnyActionRunning(mRefreshCoreDataAction)) {
+            return;
+        }
+
+        mRefreshCoreDataAction =
+                RxHelper.execute(RxHelper.fromRunnable(() -> getAppService().warmUpCacheIfNeeded(FormatInfoWrapper.getActualClient())));
     }
 
     @Override
     public void switchNextClient() {
         FormatInfoWrapper.invalidateCache();
-        FormatInfoWrapper.switchNextFormat(false);
+        FormatInfoWrapper.switchNextClient(false);
     }
 
     @Override
     public void switchNextClientNow() {
         FormatInfoWrapper.invalidateCache();
-        FormatInfoWrapper.switchNextFormat(true);
+        FormatInfoWrapper.switchNextClient(true);
     }
 
     @Override
     public void switchNextSubsFormat() {
         FormatInfoWrapper.invalidateCache();
-        getVideoInfoService().switchNextSubtitle();
+        FormatInfoWrapper.switchNextSubtitle();
     }
 
     /**
@@ -124,12 +132,9 @@ public class YouTubeServiceManager implements ServiceManager {
         ReloadPlaybackGate.setToken(videoId, reloadPlaybackToken);
     }
 
-    private void refreshCacheIfNeededInt() {
-        if (RxHelper.isAnyActionRunning(mRefreshCoreDataAction)) {
-            return;
-        }
-
-        mRefreshCoreDataAction = RxHelper.execute(RxHelper.fromRunnable(getAppService()::refreshCacheIfNeeded));
+    @Override
+    public void allowRestrictedVideos(boolean allow) {
+        FormatInfoWrapper.allowRestrictedVideos(allow);
     }
 
     @NonNull
@@ -163,11 +168,6 @@ public class YouTubeServiceManager implements ServiceManager {
     }
 
     @NonNull
-    private static VideoInfoService getVideoInfoService() {
-        return VideoInfoService.instance();
-    }
-
-    @NonNull
     private static AppService getAppService() {
         return AppService.instance();
     }
@@ -182,7 +182,7 @@ public class YouTubeServiceManager implements ServiceManager {
         return ChannelGroupServiceImpl.INSTANCE;
     }
 
-    @Nullable
+    @NonNull
     private static MediaServiceData getMediaServiceData() {
         return MediaServiceData.instance();
     }
