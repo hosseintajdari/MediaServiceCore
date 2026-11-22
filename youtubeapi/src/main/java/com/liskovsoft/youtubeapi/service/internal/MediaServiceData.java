@@ -308,6 +308,9 @@ public class MediaServiceData {
         //mSkipAuth = Helpers.parseBoolean(split, 5);
         // entries here moved to the cache
         mEnabledFormats = Helpers.parseInt(split, 11, FORMATS_ADAPTIVE);
+        if (!Helpers.parseBoolean(split, 27, false)) {
+            mEnabledFormats |= FORMATS_EXTENDED_HLS;
+        }
         // null
         mPoToken = Helpers.parseItem(split, 14, PoTokenResponse::fromString);
         mAppInfo = Helpers.parseItem(split, 15, AppInfoCached::fromString);
@@ -352,7 +355,7 @@ public class MediaServiceData {
                         null, mEnabledFormats, null, null, mPoToken, mAppInfo,
                         null, mClientData, mHiddenContent, mIsMoreSubtitlesUnlocked,
                         null, mVisitorCookie, null, null, mFailedAppInfo, mIsLegacyUIEnabled,
-                        mIsSabrLiveEnabled));
+                        mIsSabrLiveEnabled, true));
     }
 
     private void persistCachedDataInt() {
